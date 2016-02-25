@@ -34,8 +34,6 @@ class gf_post_fields_repeater_addon
         add_filter( 'gform_editor_repeater_field_settings', array(__CLASS__, 'add_repeater_field_settings') );
 
         add_action( 'gform_after_create_post', array(__CLASS__, 'form_handler'), 10, 3);
-        
-        //add_action( 'gform_field_input', array(__CLASS__, 'gform_add_repeater_start_attribute') );
 
         add_action( 'gform_pre_render', array(__CLASS__, 'gform_pre_render_repeater_fields') );
 
