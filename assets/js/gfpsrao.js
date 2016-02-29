@@ -11,7 +11,7 @@ jQuery(window).bind('gform_repeater_init_done', function() {
 					if (field.is(':checkbox, :radio')) {
 					    form.find('input[name="' + field_name + '"][value="' + field_value + '"]').prop('checked', true);
 					} else {
-						field.val(field_value);
+						field.val(field_value).trigger('change');
 					}
 				}
 			}

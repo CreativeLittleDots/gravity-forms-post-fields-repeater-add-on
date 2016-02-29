@@ -5,10 +5,10 @@ Plugin URI: http://wordpress.org/plugins/gravity-forms-post-fields-repeater-add-
 Description: This is a plugin to connect Gravity Forms Post Updates and Gravity Forms Repeater Field
 Author: Creative Little Dots
 Version: 1.0
-Author URI: http://www.creativelittledots.co.uk
+Author URI: http://www.creativelittledots.co.uk/
 */
 
-add_action( 'plugins_loaded', array('gf_post_fields_repeater_addon', 'init') );
+add_action( 'init', array('gf_post_fields_repeater_addon', 'init') );
 
 class gf_post_fields_repeater_addon
 {
@@ -228,11 +228,6 @@ class gf_post_fields_repeater_addon
 			}
         }
         return $form;
-    }
-
-    //here is the html output part
-    public static function gform_field_input_repeater_fields($input, $field, $value, $lead_id, $form_id) {
-        return $input;
     }
 
     public static function gf_shortcode_atts( $output, $pairs, $atts ) {
