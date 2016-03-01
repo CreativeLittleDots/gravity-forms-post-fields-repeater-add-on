@@ -142,6 +142,8 @@ class gf_post_fields_repeater_addon
 	        }
 
         }
+        
+        die();
     }
 
     /*
@@ -163,16 +165,26 @@ class gf_post_fields_repeater_addon
 	     
 	    	$keys = array_keys($repeater_row);
 	    	
-	    	$repeater_row = array_combine(
-	    		array_map(function($field) {
-		    		return self::get_field_meta_key( $field );
-		    		}, 
-		    		array_filter( $form['fields'], function($field) use ($keys) {
-		            	return in_array( $field->id, $keys );
-		        	})
-		        ), 
-		        array_map('end', array_values($repeater_row))
-		    );
+	    	$fields = array_filter( $form['fields'], function($field) use ($keys) {
+            	return in_array( $field->id, $keys );
+        	});
+        	
+        	uasort($fields, function($a, $b) {
+            	
+            	return $a->id < $b->id ? -1 : 1;
+            	
+        	});
+        	
+        	$meta_keys = array_map(
+    		    function($field) {
+	    		    return self::get_field_meta_key( $field );
+	    		}, 
+	    		$fields
+	        );
+	        
+	        $meta_values = array_map('end', array_values($repeater_row));
+	    	
+	    	$repeater_row = array_combine($meta_keys, $meta_values);
 	        
 		}
 		
@@ -217,7 +229,7 @@ class gf_post_fields_repeater_addon
 		                    foreach ($field->repeaterChildren as $_key => $child) {
 		                        if( $_meta_key = self::get_field_meta_key( self::get_field_by_id( $form, $child ) ) ) {
 			                        if( ! empty( $_row_meta[$_meta_key] ) ) {
-				                        self::$row_field_values[$form['id']][$row][$child] = $_row_meta[$_meta_key];
+				                        self::$row_field_values[$form['id']][$field->id][$row][$child] = $_row_meta[$_meta_key];
 									}
 		                        }
 		                    }
