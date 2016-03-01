@@ -134,16 +134,18 @@ class gf_post_fields_repeater_addon
 
             // delete post metas before main loop because it may be the case that we need to add post metas instead of update, and user does'nt want old version of meta, but we also don't want to delete in main loop because it will delete previous 'add_post_meta' in loop
             delete_post_meta($post_id, $field->postCustomFieldName);
+            
+            if($meta_value = self::_normalize( $field, $lead, $form )) {
 
-	        if($field->postCustomFieldUnique) {
-                update_post_meta($post_id, $field->postCustomFieldName, self::_normalize( $field, $lead, $form ) );
-            } else {
-		        add_post_meta($post_id, $field->postCustomFieldName, self::_normalize( $field, $lead, $form ) );
-	        }
+    	        if($field->postCustomFieldUnique) {
+                    update_post_meta($post_id, $field->postCustomFieldName, $meta_value );
+                } else {
+    		        add_post_meta($post_id, $field->postCustomFieldName, $meta_value );
+    	        }
+    	        
+            }
 
         }
-        
-        die();
     }
 
     /*
@@ -218,7 +220,7 @@ class gf_post_fields_repeater_addon
         if( self::$form_update_id ) {
             if($_repeater_fields = self::get_repeater_fields($form)) {
 	            self::$row_field_values[$form['id']] = array();
-	            foreach ($_repeater_fields as $field) {
+	            foreach ($_repeater_fields as $repeater => $field) {
 	                $_rows_meta = get_post_meta( self::$form_update_id , $field->postCustomFieldName , true );
 	                if( empty( $_rows_meta ) || ! is_array( $_rows_meta ) ) { continue; }
 	                $_index = array_search($field, $form['fields']); // get index of where repeater field is in $form['fields']
@@ -229,7 +231,7 @@ class gf_post_fields_repeater_addon
 		                    foreach ($field->repeaterChildren as $_key => $child) {
 		                        if( $_meta_key = self::get_field_meta_key( self::get_field_by_id( $form, $child ) ) ) {
 			                        if( ! empty( $_row_meta[$_meta_key] ) ) {
-				                        self::$row_field_values[$form['id']][$field->id][$row][$child] = $_row_meta[$_meta_key];
+				                        self::$row_field_values[$form['id']][$repeater][$row]['input_' . $child] = $_row_meta[$_meta_key];
 									}
 		                        }
 		                    }
