@@ -136,7 +136,7 @@ class gf_post_fields_repeater_addon
             
             if($meta_value = self::_normalize( $field, $lead, $form )) {
                 
-                 if(!isset(self::$deleted[$field->postCustomFieldName])) {
+                if(!isset(self::$deleted[$field->postCustomFieldName])) {
                     delete_post_meta($post_id, $field->postCustomFieldName);
                     self::$deleted[$field->postCustomFieldName] = true;
                 }
@@ -164,33 +164,37 @@ class gf_post_fields_repeater_addon
      |  @return Array
      |
      */
-    private static function _normalize( $field , $lead , $form){
+    private static function _normalize( $field , $lead , $form) {
 	    
-        $_repeater_rows = array_values(unserialize($lead[$field->id]));
-	        
-        foreach($_repeater_rows as &$repeater_row) {
-            
-            $repeater_row_meta = array();
-            
-            foreach($repeater_row as $key => &$value) {
-            	
-            	if($field = self::get_field_by_id( $form , $key )) {
-                	
-                	$meta_key = self::get_field_meta_key( $field );
-                	
-                	$repeater_row_meta[$meta_key] = self::_decode_field_value($value, $field);
-               	
-            	}
-            	
-            	
-            
-            }  
-	    	
-	    	$repeater_row = $repeater_row_meta;
+	    $_repeater_rows = array();
+	    
+	    if($data = unserialize($lead[$field->id])) {
+	    
+	        $_repeater_rows = array_values($data);
+		        
+	        foreach($_repeater_rows as &$repeater_row) {
+	            
+	            $repeater_row_meta = array();
+	            
+	            foreach($repeater_row as $key => &$value) {
+	            	
+	            	if($field = self::get_field_by_id( $form , $key )) {
+	                	
+	                	$meta_key = self::get_field_meta_key( $field );
+	                	
+	                	$repeater_row_meta[$meta_key] = self::_decode_field_value($value, $field);
+	               	
+	            	}
+	            
+	            }  
+		    	
+		    	$repeater_row = $repeater_row_meta;
+		        
+			}
 	        
 		}
 		
-        return $_repeater_rows;
+		return $_repeater_rows;
         
     }
      
