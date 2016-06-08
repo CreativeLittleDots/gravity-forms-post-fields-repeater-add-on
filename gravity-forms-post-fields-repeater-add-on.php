@@ -18,6 +18,8 @@ class gf_post_fields_repeater_addon
     private static $form_update_id = null;
     
     private static $row_field_values = array();
+    
+    private static $deleted = array();
 
     public static function init()
     {
@@ -131,11 +133,13 @@ class gf_post_fields_repeater_addon
 
         //do exactly the same for each repeater field
         foreach($_repeater_fields as $field){
-
-            // delete post metas before main loop because it may be the case that we need to add post metas instead of update, and user does'nt want old version of meta, but we also don't want to delete in main loop because it will delete previous 'add_post_meta' in loop
-            delete_post_meta($post_id, $field->postCustomFieldName);
             
             if($meta_value = self::_normalize( $field, $lead, $form )) {
+                
+                 if(!isset(self::$deleted[$field->postCustomFieldName])) {
+                    delete_post_meta($post_id, $field->postCustomFieldName);
+                    self::$deleted[$field->postCustomFieldName] = true;
+                }
 
     	        if($field->postCustomFieldUnique) {
                     update_post_meta($post_id, $field->postCustomFieldName, $meta_value );
@@ -146,6 +150,7 @@ class gf_post_fields_repeater_addon
             }
 
         }
+
     }
 
     /*
@@ -164,34 +169,156 @@ class gf_post_fields_repeater_addon
         $_repeater_rows = array_values(unserialize($lead[$field->id]));
 	        
         foreach($_repeater_rows as &$repeater_row) {
-	     
-	    	$keys = array_keys($repeater_row);
-	    	
-	    	$fields = array_filter( $form['fields'], function($field) use ($keys) {
-            	return in_array( $field->id, $keys );
-        	});
-        	
-        	uasort($fields, function($a, $b) {
+            
+            $repeater_row_meta = array();
+            
+            foreach($repeater_row as $key => &$value) {
             	
-            	return $a->id < $b->id ? -1 : 1;
+            	if($field = self::get_field_by_id( $form , $key )) {
+                	
+                	$meta_key = self::get_field_meta_key( $field );
+                	
+                	$repeater_row_meta[$meta_key] = self::_decode_field_value($value, $field);
+               	
+            	}
             	
-        	});
-        	
-        	$meta_keys = array_map(
-    		    function($field) {
-	    		    return self::get_field_meta_key( $field );
-	    		}, 
-	    		$fields
-	        );
-	        
-	        $meta_values = array_map('end', array_values($repeater_row));
+            	
+            
+            }  
 	    	
-	    	$repeater_row = array_combine($meta_keys, $meta_values);
+	    	$repeater_row = $repeater_row_meta;
 	        
 		}
 		
         return $_repeater_rows;
         
+    }
+     
+     /*
+     |-----------------------------------------------------------------
+     |      Decode Field Value based on Field Type
+     |-----------------------------------------------------------------
+     |
+     |  @param object $value
+     |  @param object $field
+     |  @return Array/Int/String
+     |
+     */
+    private static function _decode_field_value($value, $field) {
+        
+        $value = end($value);
+            	
+    	switch($field->inputType) {
+        	
+        	case 'date' :
+        	    
+        	    $format_name = 'mdy';
+        	    
+        	    switch ( $field->dateFormat ) {
+					case 'mdy' :
+						$format_name = 'mm/dd/yyyy';
+						break;
+					case 'dmy' :
+						$format_name = 'dd/mm/yyyy';
+						break;
+					case 'dmy_dash' :
+						$format_name = 'dd-mm-yyyy';
+						break;
+					case 'dmy_dot' :
+						$format_name = 'dd.mm.yyyy';
+						break;
+					case 'ymd_slash' :
+						$format_name = 'yyyy/mm/dd';
+						break;
+					case 'ymd_dash' :
+						$format_name = 'yyyy-mm-dd';
+						break;
+					case 'ymd_dot' :
+						$format_name = 'yyyy.mm.dd';
+						break;
+				}
+				
+				$date = GFCommon::parse_date($value, $format_name);
+				
+				$value = implode('-', array_reverse($date));
+        	
+        	break;
+        	
+        	case 'time' :
+        	
+        	    $value = $value ? implode(':', array_filter($value)) : $value;
+        	    
+            break;
+        	    
+        	
+    	}
+        
+        return $value;
+         
+    }
+     
+     /*
+     |-----------------------------------------------------------------
+     |      Encode Field Value based on Field Type
+     |-----------------------------------------------------------------
+     |
+     |  @param object $value
+     |  @param object $field
+     |  @return Array/Int/String
+     |
+     */
+    private static function _encode_field_value($value, $field) {
+            	
+    	switch($field->inputType) {
+        	
+        	case 'date' :
+        	    
+        	    $format_name = 'mdy';
+        	    
+        	    switch ( $field->dateFormat ) {
+					case 'mdy' :
+						$format_name = 'm/d/Y';
+						break;
+					case 'dmy' :
+						$format_name = 'd/m/Y';
+						break;
+					case 'dmy_dash' :
+						$format_name = 'd-m-Y';
+						break;
+					case 'dmy_dot' :
+						$format_name = 'd.m.Y';
+						break;
+					case 'ymd_slash' :
+						$format_name = 'Y/m/d';
+						break;
+					case 'ymd_dash' :
+						$format_name = 'Y-m-d';
+						break;
+					case 'ymd_dot' :
+						$format_name = 'Y.m.d';
+						break;
+				}
+				
+				$value = array(date($format_name, strtotime($value)));
+        	
+        	break;
+        	
+        	case 'time' :
+        	
+        	    $value = explode(':', $value);
+        	
+        	break;
+        	
+        	default :
+        	
+        	    $value = is_array($value) ? $value : array($value);
+        	    
+            break;
+        	
+    	}
+        
+        return $value;
+         
     }
     
     /*
@@ -229,9 +356,10 @@ class gf_post_fields_repeater_addon
 		                $position = self::get_field_position($form['fields'], $field->id);
 		                foreach( $_rows_meta as $row => $_row_meta) {
 		                    foreach ($field->repeaterChildren as $_key => $child) {
-		                        if( $_meta_key = self::get_field_meta_key( self::get_field_by_id( $form, $child ) ) ) {
+    		                    $childField = self::get_field_by_id( $form, $child );
+		                        if( $_meta_key = self::get_field_meta_key( $childField ) ) {
 			                        if( ! empty( $_row_meta[$_meta_key] ) ) {
-				                        self::$row_field_values[$form['id']][$repeater][$row]['input_' . $child] = $_row_meta[$_meta_key];
+				                        self::$row_field_values[$form['id']][$repeater][$row][$child] = self::_encode_field_value($_row_meta[$_meta_key], $childField);
 									}
 		                        }
 		                    }
